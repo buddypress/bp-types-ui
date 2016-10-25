@@ -17,14 +17,23 @@
  * @since    1.0.0
  */
 function bptui_start() {
-	// Adding member types
-	require_once( plugin_dir_path( __FILE__ ) . 'includes/class-bp-member-types-ui.php' );
-	BP_Member_Types_UI::get_instance();
+	$base_path = plugin_dir_path( __FILE__ );
 
-	// Adding group types
+	// Include base class.
+	require_once( $base_path . 'includes/class-bp-types-ui.php' );
+	$base_types_class = new BP_Types_UI();
+	$base_types_class->add_action_hooks();
+
+	// Include member types class.
+	require_once( $base_path . 'includes/class-bp-member-types-ui.php' );
+	$member_types_class = new BP_Member_Types_UI();
+	$member_types_class->add_action_hooks();
+
+	// Include group types class.
 	if ( bp_is_active( 'groups' ) ) {
-		require_once( plugin_dir_path( __FILE__ ) . 'includes/class-bp-group-types-ui.php' );
-		BP_Group_Types_UI::get_instance();
+		require_once( $base_path . 'includes/class-bp-group-types-ui.php' );
+		$group_types_class = new BP_Group_Types_UI();
+		$group_types_class->add_action_hooks();
 	}
 }
 add_action( 'bp_loaded', 'bptui_start' );

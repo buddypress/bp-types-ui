@@ -5,59 +5,29 @@
  * @license   GPL-2.0+
  */
 
-class BP_Group_Types_UI extends BP_Member_Types_UI {
+class BP_Group_Types_UI extends BP_Types_UI {
 
 	/**
-	 * Instance of this class.
-	 *
-	 * @since    1.0.0
-	 *
-	 * @var      object
-	 */
-	protected static $instance = null;
-
-	/**
-	 * Initialize the plugin by setting localization and loading public scripts
-	 * and styles.
+	 * Initialize the class.
 	 *
 	 * @since     1.0.0
 	 */
-	private function __construct() {
+	public function __construct() {
+	}
 
+	/**
+	 * Add actions and filters to WordPress/BuddyPress hooks.
+	 *
+	 * @since    1.0.0
+	 *
+	 * @return    void.
+	 */
+	public function add_action_hooks() {
 		// Register Group Type custom post type.
 		add_action( 'init', array( $this, 'register_bp_group_types_cpt' ) );
 
 		// Add the Group Type management page to the BP Groups menu item.
 		add_action( bp_core_admin_hook(), array( $this, 'relocate_cpt_admin_screen' ), 99 );
-
-	}
-
-	/**
-	 * Return the plugin slug.
-	 *
-	 * @since    1.0.0
-	 *
-	 * @return    Plugin slug variable.
-	 */
-	public function get_plugin_slug() {
-		return $this->plugin_slug;
-	}
-
-	/**
-	 * Return an instance of this class.
-	 *
-	 * @since     1.0.0
-	 *
-	 * @return    object    A single instance of this class.
-	 */
-	public static function get_instance() {
-
-		// If the single instance hasn't been set, set it now.
-		if ( null == self::$instance ) {
-			self::$instance = new self;
-		}
-
-		return self::$instance;
 	}
 
 	/**
@@ -115,7 +85,5 @@ class BP_Group_Types_UI extends BP_Member_Types_UI {
 	function relocate_cpt_admin_screen() {
 		add_submenu_page( 'bp-groups', _x( 'Group Types', 'Group Type General Name', 'bp-types-ui' ), _x( 'Group Types', 'Group Type General Name', 'bp-types-ui' ), 'manage_options', 'edit.php?post_type=bp_group_type' );
 	}
-
-
 
 }
