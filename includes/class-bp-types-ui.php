@@ -67,6 +67,9 @@ class BP_Types_UI {
 	public function add_action_hooks() {
 		// Load plugin text domain.
 		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
+
+		// Listen for AJAX Type ID checks.
+		add_action( 'wp_ajax_check-bp-type-id', array( $this, 'ajax_check_type_id' ) );
 	}
 
 	/**
@@ -104,6 +107,55 @@ class BP_Types_UI {
 		load_textdomain( $domain, trailingslashit( WP_LANG_DIR ) . $domain . '/' . $domain . '-' . $locale . '.mo' );
 		load_plugin_textdomain( $domain, FALSE, basename( plugin_dir_path( dirname( __FILE__ ) ) ) . '/languages/' );
 
+	}
+
+	/**
+	 * Listen for AJAX Type ID checks.
+	 *
+	 * @since    1.0.0
+	 */
+	public function ajax_check_type_id() {
+		if ( ! isset( $_POST['pagenow'] ) ) {
+			return;
+		}
+
+		// We want to check the registered types right before ours are added.
+		//@TODO: This isn't working. Maybe the ajax action hooks in after bp_register_member_types?
+		if ( 'bp_member_type' == $_POST['pagenow'] ) {
+			add_action( 'bp_register_member_types', array( $this, 'ajax_check_type_id_send_response' ), 11 );
+		} elseif( 'bp_group_type' == $_POST['pagenow'] ) {
+			add_action( 'bp_groups_register_group_types', array( $this, 'ajax_check_type_id_send_response' ), 11 );
+		}
+	}
+
+	/**
+	 * Check whether a type ID has been registered via code.
+	 *
+	 * @since    1.0.0
+	 */
+	public function ajax_check_type_id_send_response() {
+		//@TODO: This isn't working. Maybe the ajax action hooks in after bp_register_member_types?
+		if ( ! isset( $_POST['type'] ) ) {
+			if ( ! isset( $_POST['singular_name'] ) ) {
+				wp_send_json_error( __( 'Unknown type' , 'bp-types-ui' ) );
+			} else {
+				$type = sanitize_title( $_POST['singular_name'] );
+			}
+		} else {
+			$type = sanitize_title( $_POST['type'] );
+		}
+
+		if ( 'bp_member_type' == $_POST['pagenow'] ) {
+			if ( null == bp_get_member_type_object( $type ) ) {
+				wp_send_json_success( __( 'Type ID is unique.' , 'bp-types-ui' ) );
+			}
+		} elseif( 'bp_group_type' == $_POST['pagenow'] ) {
+			if ( null == bp_groups_get_group_type_object( $type ) ) {
+				wp_send_json_success( __( 'Type ID is unique.' , 'bp-types-ui' ) );
+			}
+		}
+
+		wp_send_json_error( __( 'Type ID is already in use.' , 'bp-types-ui' ) );
 	}
 
 	/**

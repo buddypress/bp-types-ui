@@ -27,4 +27,26 @@
 			}
 		});
 	}
+
+	/**
+	 * Give user feedback about overlapping types.
+	 */
+	function check_type_id_is_unique() {
+		$.ajax({
+			type: 'POST',
+			url: ajaxurl,
+			data: {
+				'action': 'check-bp-type-id',
+				'pagenow': pagenow,
+				'type': $( "#type_id" ).val(),
+				'singular_name': $( "#singular_name" ).val(),
+			},
+			success: function (response) {
+				console.log( response );
+			},
+			error: function (response) {
+				console.log( response );
+			}
+		});
+	}
 } )( jQuery )
