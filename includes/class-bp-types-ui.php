@@ -32,6 +32,24 @@ class BP_Types_UI {
 	protected $plugin_slug = 'bp-types-ui';
 
 	/**
+	 * Post type name.
+	 *
+	 * @since   1.0.0
+	 *
+	 * @var     string
+	 */
+	protected $post_type;
+
+	/**
+	 * ID of the meta box. Used for nonce generation, too.
+	 *
+	 * @since   1.0.0
+	 *
+	 * @var     string
+	 */
+	protected $meta_box_id;
+
+	/**
 	 * Initialize the class.
 	 *
 	 * @since     1.0.0
@@ -86,6 +104,134 @@ class BP_Types_UI {
 		load_textdomain( $domain, trailingslashit( WP_LANG_DIR ) . $domain . '/' . $domain . '-' . $locale . '.mo' );
 		load_plugin_textdomain( $domain, FALSE, basename( plugin_dir_path( dirname( __FILE__ ) ) ) . '/languages/' );
 
+	}
+
+	/**
+	 * Load admin scripts and styles.
+	 *
+	 * @since    1.0.0
+	 */
+	function enqueue_admin_scripts_styles( $hook_suffix ) {
+		// Only load the scripts and styles when on our pages.
+		$screen = get_current_screen();
+		if ( ! isset( $screen->post_type ) || $this->post_type != $screen->post_type ) {
+			return;
+		}
+		wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'js/bp-types-admin.js', __FILE__ ), array( 'jquery' ), $this->version, true );
+		wp_enqueue_style( $this->plugin_slug . '-admin-styles', plugins_url( 'css/bp-types-admin.css', __FILE__ ), array(), $this->version, 'all' );
+	}
+
+	/**
+	 * Change the default placeholder text in the title input.
+	 *
+	 * @since    1.0.0
+	 *
+	 * @param string  $text Placeholder text. Default 'Enter title here'.
+	 * @param WP_Post $post Post object.
+	 *
+	 * @return string  $text Placeholder text.
+	 */
+	function filter_title_placeholder( $placeholder, $post ){
+		if ( $this->post_type == $post->post_type ) {
+			$placeholder = _x( 'Enter plural name for type here', 'BuddyPress group and member type edit screen title input placeholder text', 'bp-types-ui' );
+		}
+		return $placeholder;
+	}
+
+	/**
+	 * Determines whether or not the current user has the ability to save meta data associated with this post.
+	 *
+	 * @param  int    $post_id      The ID of the post being saved.
+	 * @param  string $nonce_name   The name of the passed nonce.
+	 * @param  string $nonce_action The action of the passed nonce.
+	 *
+	 * @return bool Whether or not the user has the ability to save this post.
+	 */
+	public function user_can_save( $post_id, $nonce_name, $nonce_action ) {
+
+		// Don't save if the user hasn't submitted the changes.
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return false;
+		}
+
+		// Verify that the input is well nonced.
+		if ( ! isset( $_POST[ $nonce_name ] ) || ! wp_verify_nonce( $_POST[ $nonce_name ], $nonce_action ) ) {
+			return false;
+		}
+
+		// Make sure the user has permission to edit this post.
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * General handler for saving post meta.
+	 *
+	 * @since   1.0.0
+	 *
+	 * @param 	int $post_id
+	 * @param 	array meta_key names to save
+	 *
+	 * @return  bool
+	 */
+	function save_meta_fields( $post_id, $fields = array() ) {
+		$successes = 0;
+
+		// Check that this user is allowed to take this action.
+		$nonce_name   = $this->meta_box_id . '_nonce';
+		$nonce_action = 'edit_' . $this->post_type . '_' . $post_id;
+		if ( ! $this->user_can_save( $post_id, $nonce_name, $nonce_action ) ) {
+			return false;
+		}
+
+		// Generate fallbacks for needed information if left blank.
+		if ( empty( $_POST['post_title'] ) ) {
+			// @TODO: This won't set the title. Should we enforce titles?
+			$_POST['post_title'] = $this->post_type . '-' . $post_id;
+		}
+		if ( empty( $_POST['singular_name'] ) ) {
+			$_POST['singular_name'] = $_POST['post_title'];
+		}
+		if ( empty( $_POST['type_id'] ) ) {
+			$_POST['type_id'] = $_POST['singular_name'];
+		}
+		// Sanitize the type_id and custom directory slug.
+		$_POST['type_id'] = sanitize_title( $_POST['type_id'] );
+		if ( $_POST['has_directory_slug'] ) {
+			$_POST['has_directory_slug'] = sanitize_title( $_POST['has_directory_slug'] );
+		}
+
+		foreach ( $fields as $field ) {
+			$old_setting = get_post_meta( $post_id, $field, true );
+			$new_setting = ( isset( $_POST[$field] ) ) ? $_POST[$field] : '';
+			$success = false;
+
+			if ( empty( $new_setting ) && ! empty( $old_setting ) ) {
+				$success = delete_post_meta( $post_id, $field );
+			} elseif ( $new_setting == $old_setting ) {
+				/*
+				 * No need to resave settings if they're the same.
+				 * Also, update_post_meta returns false in this case,
+				 * which is confusing.
+				 */
+				$success = true;
+			} else {
+				$success = update_post_meta( $post_id, $field, $new_setting );
+			}
+
+			if ( $success ) {
+				$successes++;
+			}
+		}
+
+		if ( $successes == count( $fields ) ) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 }
