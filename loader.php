@@ -21,8 +21,6 @@ function bptui_start() {
 
 	// Include base class.
 	require_once( $base_path . 'includes/class-bp-types-ui.php' );
-	$base_types_class = new BP_Types_UI();
-	$base_types_class->add_action_hooks();
 
 	// Include member types class.
 	require_once( $base_path . 'includes/class-bp-member-types-ui.php' );

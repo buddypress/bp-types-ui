@@ -26,15 +26,6 @@ class BP_Group_Types_UI extends BP_Types_UI {
 	protected $meta_box_id = 'bp-group-type-parameters';
 
 	/**
-	 * Initialize the class.
-	 *
-	 * @since     1.0.0
-	 */
-	public function __construct() {
-		parent::__construct();
-	}
-
-	/**
 	 * Add actions and filters to WordPress/BuddyPress hooks.
 	 *
 	 * @since    1.0.0
@@ -51,17 +42,10 @@ class BP_Group_Types_UI extends BP_Types_UI {
 		// Customize the post type input form.
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 
-		// Change the placeholder text in the title input.
-		add_filter( 'enter_title_here', array( $this, 'filter_title_placeholder' ), 10, 2 );
-
-		// Save meta when posts are saved.
-		add_action( 'save_post', array( $this, 'save' ) );
-
 		// Register saved group types.
 		add_action( 'bp_groups_register_group_types', array( $this, 'register_group_types' ), 12 );
 
-		// Add admin scripts.
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts_styles' ) );
+		parent::add_action_hooks();
 	}
 
 	/**
@@ -118,7 +102,7 @@ class BP_Group_Types_UI extends BP_Types_UI {
 	 *
 	 * @since 1.0.0
 	 */
-	function relocate_cpt_admin_screen() {
+	public function relocate_cpt_admin_screen() {
 		add_submenu_page(
 			'bp-groups',
 			_x( 'Group Types', 'Group Type General Name', 'bp-types-ui' ),

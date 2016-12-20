@@ -5,7 +5,7 @@
  * @license   GPL-2.0+
  */
 
-class BP_Types_UI {
+abstract class BP_Types_UI {
 
 	/**
 	 * Plugin version, used for cache-busting of style and script file references.
@@ -50,12 +50,14 @@ class BP_Types_UI {
 	protected $meta_box_id;
 
 	/**
-	 * Initialize the class.
+	 * Meta box title.
 	 *
-	 * @since     1.0.0
+	 * @since 1.0.0
+	 * @var string
 	 */
-	public function __construct() {
-	}
+	protected $meta_box_title;
+
+	protected $post_type_overrides = array();
 
 	/**
 	 * Add actions and filters to WordPress/BuddyPress hooks.
@@ -65,11 +67,22 @@ class BP_Types_UI {
 	 * @return    void.
 	 */
 	public function add_action_hooks() {
-		// Load plugin text domain.
-		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
+		add_action( 'bp_register_post_types', array( $this, 'register_post_type' ), 99 );
 
 		// Listen for AJAX Type ID checks.
 		add_action( 'wp_ajax_check-bp-type-id', array( $this, 'ajax_check_type_id' ) );
+
+		// Customize the post type input form.
+		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
+
+		// Change the placeholder text in the title input.
+		add_filter( 'enter_title_here', array( $this, 'filter_title_placeholder' ), 10, 2 );
+
+		// Save meta when posts are saved.
+		add_action( 'save_post', array( $this, 'save' ) );
+
+		// Add admin scripts.
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts_styles' ) );
 	}
 
 	/**
@@ -183,10 +196,11 @@ class BP_Types_UI {
 	 *
 	 * @return string  $text Placeholder text.
 	 */
-	function filter_title_placeholder( $placeholder, $post ){
+	public function filter_title_placeholder( $placeholder, $post ){
 		if ( $this->post_type == $post->post_type ) {
-			$placeholder = _x( 'Enter plural name for type here', 'BuddyPress group and member type edit screen title input placeholder text', 'bp-types-ui' );
+			$placeholder = __( 'Enter plural name for type here', 'bp-types-ui' );
 		}
+
 		return $placeholder;
 	}
 
@@ -286,4 +300,52 @@ class BP_Types_UI {
 		}
 	}
 
+	/**
+	 * Add a meta box for the properties for this type.
+	 *
+	 * @since    1.0.0
+	 */
+	public function add_meta_box() {
+		add_meta_box(
+			$this->meta_box_id,
+			$this->meta_box_title,
+			array( $this, 'output_meta_box' ),
+			$this->post_type,
+			'normal',
+			'high'
+		);
+	}
+
+	/**
+	 * Register post type.
+	 *
+	 * @since 1.0.0
+	 */
+	public function register_post_type() {
+		$args = array(
+			'label'                 => $this->post_type_labels['name'],
+			'labels'                => $this->post_type_labels,
+			'supports'              => array( 'title' ),
+			'hierarchical'          => false,
+			'public'                => false,
+			'show_ui'               => false,
+			'show_in_menu'          => true,
+			'menu_position'         => 5,
+			'show_in_admin_bar'     => false,
+			'show_in_nav_menus'     => false,
+			'can_export'            => true,
+			'has_archive'           => false,
+			'rewrite'               => false,
+			'exclude_from_search'   => true,
+			'publicly_queryable'    => true,
+			// 'capability_type'       => 'bp_type',
+			// 'map_meta_cap'          => true,
+		);
+
+		$args = array_merge( $args, $this->post_type_overrides );
+
+		register_post_type( $this->post_type, $args );
+	}
+
+	abstract public function output_meta_box( $post );
 }

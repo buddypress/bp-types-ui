@@ -10,11 +10,16 @@ class BP_Member_Types_UI extends BP_Types_UI {
 	/**
 	 * Post type name.
 	 *
-	 * @since   1.0.0
+	 * @since 1.0.0
 	 *
-	 * @var     string
+	 * @var   string
 	 */
 	protected $post_type = 'bp_member_type';
+
+	protected $post_type_overrides = array(
+		'show_ui'       => 'users.php',
+		'menu_position' => 5,
+	);
 
 	/**
 	 * ID of the meta box. Used for nonce generation, too.
@@ -25,48 +30,10 @@ class BP_Member_Types_UI extends BP_Types_UI {
 	 */
 	protected $meta_box_id = 'bp-member-type-parameters';
 
-	/**
-	 * Initialize the class.
-	 *
-	 * @since     1.0.0
-	 */
 	public function __construct() {
-		parent::__construct();
-	}
+		$this->meta_box_title = _x( 'Member Type Properties', 'Title of Member Type post meta box.', 'bp-types-ui' );
 
-	/**
-	 * Add actions and filters to WordPress/BuddyPress hooks.
-	 *
-	 * @since    1.0.0
-	 */
-	public function add_action_hooks() {
-		// Register Member Type custom post type.
-		add_action( 'init', array( $this, 'register_bp_member_types_cpt' ), 99 );
-
-		// Customize the post type input form.
-		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
-
-		// Change the placeholder text in the title input.
-		add_filter( 'enter_title_here', array( $this, 'filter_title_placeholder' ), 10, 2 );
-
-		// Save meta when posts are saved.
-		add_action( 'save_post', array( $this, 'save' ) );
-
-		// Register saved member types.
-		add_action( 'bp_register_member_types', array( $this, 'register_member_types' ), 12 );
-
-		// Add admin scripts and styles.
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts_styles' ) );
-	}
-
-	/**
-	 * Register Member Type custom post type.
-	 *
-	 * @since    1.0.0
-	 */
-	public function register_bp_member_types_cpt() {
-
-		$labels = array(
+		$this->post_type_labels = array(
 			'name'                  => _x( 'Member Types', 'Post Type General Name', 'bp-types-ui' ),
 			'singular_name'         => _x( 'Member Type', 'Post Type Singular Name', 'bp-types-ui' ),
 			'parent_item_colon'     => __( 'Parent Type:', 'bp-types-ui' ),
@@ -86,43 +53,18 @@ class BP_Member_Types_UI extends BP_Types_UI {
 			'items_list_navigation' => __( 'Types list navigation', 'bp-types-ui' ),
 			'filter_items_list'     => __( 'Filter types list', 'bp-types-ui' ),
 		);
-		$args = array(
-			'label'                 => __( 'Member Type', 'bp-types-ui' ),
-			'description'           => __( 'Create generated member types.', 'bp-types-ui' ),
-			'labels'                => $labels,
-			'supports'              => array( 'title' ),
-			'hierarchical'          => false,
-			'public'                => false,
-			'show_ui'               => true,
-			'show_in_menu'          => 'users.php',
-			'menu_position'         => 5,
-			'show_in_admin_bar'     => false,
-			'show_in_nav_menus'     => false,
-			'can_export'            => true,
-			'has_archive'           => false,
-			'rewrite'               => false,
-			'exclude_from_search'   => true,
-			'publicly_queryable'    => true,
-			// 'capability_type'       => 'bp_type',
-			// 'map_meta_cap'          => true,
-		);
-		register_post_type( $this->post_type, $args );
 	}
 
 	/**
-	 * Add a meta box for the properties for this type.
+	 * Add actions and filters to WordPress/BuddyPress hooks.
 	 *
 	 * @since    1.0.0
 	 */
-	public function add_meta_box() {
-		add_meta_box(
-			$this->meta_box_id,
-			_x( 'Member Type Properties', 'Title of Member Type post meta box.', 'bp-types-ui' ),
-			array( $this, 'output_meta_box' ),
-			$this->post_type,
-			'normal',
-			'high'
-		);
+	public function add_action_hooks() {
+		// Register saved member types.
+		add_action( 'bp_register_member_types', array( $this, 'register_member_types' ), 12 );
+
+		parent::add_action_hooks();
 	}
 
 	/**
