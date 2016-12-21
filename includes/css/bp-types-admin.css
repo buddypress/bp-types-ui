@@ -1,0 +1,11 @@
+// Add header-like spacing and emphasis to feidlsets.
+.inside fieldset {
+    margin: 1.33em 0;
+}
+.inside fieldset legend {
+	font-weight: 600;
+}
+.wp-editor-area {
+	height: 150px;
+	width: 100%;
+}
