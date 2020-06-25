@@ -16,10 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.1.0
  *
- * @param string $type The type name.
+ * @param string $taxonomy_name The BuddyPress type taxonomy name.
  * @return array The BuddyPress type taxonomy arguments.
  */
-function bptui_get_bp_type_taxonomy_args( $type = '' ) {
+function bptui_get_bp_type_taxonomy_args( $taxonomy_name = '' ) {
 	$taxonomy_args = array();
 	$common_args   = array(
 		'public'        => false,
@@ -96,11 +96,11 @@ function bptui_get_bp_type_taxonomy_args( $type = '' ) {
 		)
 	);
 
-	if ( ! isset( $taxonomy_args[ $type ] ) ) {
+	if ( ! isset( $taxonomy_args[ $taxonomy_name ] ) ) {
 		return array();
 	}
 
-	return $taxonomy_args[ $type ];
+	return $taxonomy_args[ $taxonomy_name ];
 }
 
 /**
@@ -172,38 +172,38 @@ function bptui_get_bp_type_meta_args( $type = '' ) {
 }
 
 /**
- * Reset BuddyPress type taxonomies to use new arguments.
+ * Set BuddyPress type taxonomies arguments.
  *
  * @since 1.1.0
  */
-function bptui_reset_bp_type_taxonomies() {
-	// Reset only once.
-	remove_action( 'bp_register_taxonomies', 'bptui_reset_bp_type_taxonomies', 11 );
+function bptui_set_bp_type_taxonomy_args( $args = array(), $taxonomy_name = '' ) {
+	if ( bp_get_member_type_tax_name() !== $taxonomy_name && 'bp_group_type' !== $taxonomy_name ) {
+		return $args;
+	}
 
-	$bp_type_taxonomies = array_intersect(
-		get_taxonomies( array( 'public' => false ) ),
-		array( bp_get_member_type_tax_name(), 'bp_group_type' )
-	);
+	return bptui_get_bp_type_taxonomy_args( $taxonomy_name );
+}
+add_filter( 'register_taxonomy_args', 'bptui_set_bp_type_taxonomy_args', 10, 2 );
 
-	$objects = array(
-		bp_get_member_type_tax_name() => 'user',
-		'bp_group_type'               => 'bp_group',
-	);
+/**
+ * Registers BuddyPress type taxonomies metadata.
+ *
+ * @since 1.1.0
+ */
+function bptui_register_type_taxonomies_metadata() {
+	$type_taxonomies = array( bp_get_member_type_tax_name() );
 
-	foreach ( $bp_type_taxonomies as $bp_type_taxonomy ) {
-		unregister_taxonomy( $bp_type_taxonomy );
-		register_taxonomy(
-			$bp_type_taxonomy,
-			$objects[ $bp_type_taxonomy ],
-			bptui_get_bp_type_taxonomy_args( $bp_type_taxonomy )
-		);
+	if ( bp_is_active( 'groups') ) {
+		$type_taxonomies[] = 'bp_group_type';
+	}
 
-		foreach ( bptui_get_bp_type_meta_args( $bp_type_taxonomy ) as $meta_key => $meta_args ) {
-			bp_register_type_meta( $bp_type_taxonomy, $meta_key, $meta_args );
+	foreach ( $type_taxonomies as $type_taxonomy ) {
+		foreach ( bptui_get_bp_type_meta_args( $type_taxonomy ) as $meta_key => $meta_args ) {
+			bp_register_type_meta( $type_taxonomy, $meta_key, $meta_args );
 		}
 	}
 }
-add_action( 'bp_register_taxonomies', 'bptui_reset_bp_type_taxonomies', 11 );
+add_action( 'bp_register_taxonomies', 'bptui_register_type_taxonomies_metadata', 11 );
 
 /**
  * Adds a `code` property set to true for object type registered using code.
