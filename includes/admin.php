@@ -641,35 +641,89 @@ function bptui_admin_screen_types_load() {
 add_action( 'load-edit-tags.php', 'bptui_admin_screen_types_load' );
 
 /**
- * Create Admin submenus for BuddyPress types.
+ * Redirects the user ot the Goups network admin screen when BuddyPress is network activated.
  *
- * @todo There's no edit-tags.php file into the Network administration.
- * We'll need to think about a place to fallback to eg: a BuddyPress
- * "objects" admin menu in root blog's admin?
+ * @since 1.1.0
+ */
+function bptui_group_admin_menu_callback_load() {
+	wp_safe_redirect( add_query_arg( 'page', 'bp-groups', network_admin_url( 'admin.php' ) ) );
+	exit();
+}
+
+/**
+ * Root blog's Groups Admin Screen callback function used when BuddyPress is network activated.
+ *
+ * @since 1.1.0
+ */
+function bptui_group_admin_menu_callback() {
+	return;
+}
+
+/**
+ * Create Admin submenus for BuddyPress types.
  *
  * @since 1.1.0
  */
 function bptui_admin_menu() {
-	if ( ! bp_is_root_blog() || is_network_admin() ) {
+	if ( ! bp_is_root_blog() ) {
 		return;
 	}
 
-	add_submenu_page(
-		'users.php',
-		__( 'Member types', 'bp-types-ui' ),
-		__( 'Member types', 'bp-types-ui' ),
-		'bp_moderate',
-		basename( add_query_arg( 'taxonomy', bp_get_member_type_tax_name(), bp_get_admin_url( 'edit-tags.php' ) ) )
-	);
+	if ( bp_is_network_activated() ) {
+		if ( is_network_admin() ) {
+			// Adds a users.php submenu to go to the root blog Member types screen.
+			$member_type_admin_url = add_query_arg( 'taxonomy', bp_get_member_type_tax_name(), get_admin_url( bp_get_root_blog_id(), 'edit-tags.php' ) );
 
-	if ( bp_is_active( 'groups' ) ) {
+			add_submenu_page(
+				'users.php',
+				__( 'Member types', 'bp-types-ui' ),
+				__( 'Member types', 'bp-types-ui' ),
+				'bp_moderate',
+				esc_url( $member_type_admin_url )
+			);
+
+			// Adds a 'bp-groups' submenu to go to the root blog Group types screen.
+			$group_type_admin_url = add_query_arg( 'taxonomy', 'bp_group_type', get_admin_url( bp_get_root_blog_id(), 'edit-tags.php' ) );
+			add_submenu_page(
+				'bp-groups',
+				__( 'Group types', 'bp-types-ui' ),
+				__( 'Group types', 'bp-types-ui' ),
+				'bp_moderate',
+				esc_url( $group_type_admin_url )
+			);
+		} elseif ( bp_is_active( 'groups' ) ) {
+			// Adds a 'bp-groups' menu to the root blog menu.
+			$redirect_hook = add_menu_page(
+				_x( 'Groups', 'Admin Groups page title', 'buddypress' ),
+				_x( 'Groups', 'Admin Groups menu', 'buddypress' ),
+				'bp_moderate',
+				'bp-groups',
+				'bptui_group_admin_menu_callback',
+				'div'
+			);
+
+			add_action( "load-{$redirect_hook}", 'bptui_group_admin_menu_callback_load' );
+		}
+	}
+
+	if ( ! is_network_admin() ) {
 		add_submenu_page(
-			'bp-groups',
-			__( 'Group types', 'bp-types-ui' ),
-			__( 'Group types', 'bp-types-ui' ),
+			'users.php',
+			__( 'Member types', 'bp-types-ui' ),
+			__( 'Member types', 'bp-types-ui' ),
 			'bp_moderate',
-			basename( add_query_arg( 'taxonomy', 'bp_group_type', bp_get_admin_url( 'edit-tags.php' ) ) )
+			basename( add_query_arg( 'taxonomy', bp_get_member_type_tax_name(), bp_get_admin_url( 'edit-tags.php' ) ) )
 		);
+
+		if ( bp_is_active( 'groups' ) ) {
+			add_submenu_page(
+				'bp-groups',
+				__( 'Group types', 'bp-types-ui' ),
+				__( 'Group types', 'bp-types-ui' ),
+				'bp_moderate',
+				basename( add_query_arg( 'taxonomy', 'bp_group_type', bp_get_admin_url( 'edit-tags.php' ) ) )
+			);
+		}
 	}
 }
 add_action( 'bp_admin_menu', 'bptui_admin_menu' );
